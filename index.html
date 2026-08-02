@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Vendas</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
+<style>
+  :root{
+    --bg:#F3F4F6;
+    --card:#FFFFFF;
+    --ink:#1B1C1E;
+    --ink-soft:#6B7280;
+    --line:#E5E7EB;
+    --accent:#EA1D2C;
+    --accent-soft:#FDE8E9;
+    --green:#1E8E5A;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Segoe UI","Calibri",Roboto,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 60px;}
+
+  header{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:18px;}
+  header h1{font-size:22px;margin:0 0 4px;letter-spacing:-0.01em;}
+  header p{margin:0;color:var(--ink-soft);font-size:13.5px;}
+
+  .upload-box{text-align:right;}
+  .upload-btn{
+    background:var(--ink);color:#fff;border:none;border-radius:8px;
+    padding:10px 16px;font-size:13.5px;font-weight:600;cursor:pointer;
+    display:inline-flex;align-items:center;gap:8px;
+  }
+  .upload-btn:hover{background:#000;}
+  .upload-hint{font-size:11.5px;color:var(--ink-soft);max-width:260px;margin-top:8px;line-height:1.4;}
+  .upload-hint button{background:none;border:none;color:var(--accent);font-size:11.5px;font-weight:600;cursor:pointer;padding:0;}
+
+  .files-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 18px;}
+  .file-tag{
+    display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);
+    border-radius:999px;padding:4px 6px 4px 12px;font-size:12px;color:var(--ink-soft);
+  }
+  .file-tag button{
+    border:none;background:#F0F1F3;color:var(--ink-soft);border-radius:50%;width:18px;height:18px;
+    line-height:1;cursor:pointer;font-size:12px;
+  }
+  .file-tag button:hover{background:var(--accent);color:#fff;}
+
+  .error-banner{
+    background:#F3F4F6;border:1px solid var(--line);color:var(--ink-soft);padding:8px 12px;
+    border-radius:8px;margin-bottom:16px;font-size:12px;line-height:1.5;display:none;
+    white-space:pre-line;
+  }
+  .error-banner.show{display:block;}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;}
+  .kpi .label{font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+  .kpi .value{font-size:24px;font-weight:700;letter-spacing:-0.01em;}
+  .kpi.accent .value{color:var(--accent);}
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:18px;}
+  .panel h2{font-size:14px;margin:0 0 12px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{
+    border:1px solid var(--line);
+    background:#fff;
+    padding:7px 14px;
+    border-radius:999px;
+    font-size:13px;
+    cursor:pointer;
+    user-select:none;
+    transition:all .12s ease;
+    display:flex;align-items:center;gap:7px;
+  }
+  .chip:hover{border-color:#C9CDD3;}
+  .chip .dot{width:8px;height:8px;border-radius:50%;background:var(--ink-soft);flex:none;}
+  .chip.active{background:var(--ink);border-color:var(--ink);color:#fff;}
+  .chip.active .dot{background:var(--accent);}
+  .chip.reset{font-weight:600;}
+
+  .toolbar{display:flex;gap:10px;align-items:center;margin:16px 0 12px;flex-wrap:wrap;}
+  .toolbar input[type=text]{
+    flex:1;min-width:200px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;font-family:inherit;
+  }
+  .toolbar input[type=text]:focus{outline:2px solid var(--accent-soft);border-color:var(--accent);}
+  .link-btn{background:none;border:none;color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;padding:6px 4px;white-space:nowrap;}
+  .link-btn:hover{text-decoration:underline;}
+
+  .chart-box{height:340px;position:relative;}
+  .chart-note{font-size:12px;color:var(--ink-soft);margin-top:8px;}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  thead th{
+    text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;
+    color:var(--ink-soft);border-bottom:1px solid var(--line);padding:8px 10px;cursor:pointer;white-space:nowrap;
+  }
+  thead th:hover{color:var(--ink);}
+  thead th.sorted::after{content:" ▾";font-size:10px;}
+  tbody td{padding:8px 10px;border-bottom:1px solid #F0F1F3;}
+  tbody tr:hover{background:#FAFAFA;}
+  td.num, th.num{text-align:right;font-variant-numeric:tabular-nums;}
+  td.check{width:32px;}
+  .marca-badge{
+    display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;
+    background:#EEF0F2;color:var(--ink-soft);white-space:nowrap;
+  }
+  input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;}
+
+  .table-scroll{max-height:480px;overflow-y:auto;border-top:1px solid var(--line);margin-top:4px;}
+  .table-scroll table{margin-top:0;}
+  .table-scroll thead th{position:sticky;top:0;background:var(--card);}
+
+  .empty{padding:30px 10px;text-align:center;color:var(--ink-soft);font-size:13.5px;}
+
+  .panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:12px;}
+  .panel-head h2{margin:0;}
+  .export-actions{display:flex;gap:8px;flex:none;}
+  .export-btn{
+    background:#fff;border:1px solid var(--line);color:var(--ink);
+    padding:7px 13px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+  }
+  .export-btn:hover{border-color:#C9CDD3;background:#FAFAFA;}
+  .export-btn:disabled{opacity:.5;cursor:default;}
+
+  .grupo-summary{font-size:13px;color:var(--ink-soft);margin:2px 0 16px;}
+  .grupo-summary b{color:var(--ink);font-weight:700;}
+
+  .marcas-badges{display:flex;flex-wrap:wrap;gap:4px;}
+  .marcas-badges .marca-badge{background:#F3F4F6;}
+  .marcas-badges .marca-badge.is-filtro{background:var(--accent-soft);color:var(--accent);font-weight:600;}
+
+  footer{margin-top:24px;font-size:12px;color:var(--ink-soft);text-align:center;}
+
+  @media(max-width:820px){
+    .kpis{grid-template-columns:repeat(2,1fr);}
+    .chart-box{height:280px;}
+    header{flex-direction:column;}
+    .upload-box{text-align:left;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>Painel de Vendas</h1>
+      <p id="subtitle">Carregue um relatório do iFood para começar</p>
+    </div>
+    <div class="upload-box">
+      <button class="upload-btn" id="btnUpload">⬆ Carregar relatório(s)</button>
+      <input type="file" id="fileInput" accept=".xlsx,.xls" multiple style="display:none">
+      <div class="upload-hint">
+        Aceita um ou mais arquivos exportados do iFood (aba "Vendas"). Cada upload substitui os dados atuais pelos do(s) arquivo(s) selecionado(s). Para juntar marcas diferentes num só painel, selecione todos os arquivos de uma vez.
+        <br><button id="btnClearAll">Limpar tudo</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="error-banner" id="errorBanner"></div>
+
+  <div class="files-row" id="filesRow"></div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="label">Pedidos</div><div class="value" id="kpiPedidos">—</div></div>
+    <div class="kpi accent"><div class="label">Valor total de vendas</div><div class="value" id="kpiValor">—</div></div>
+    <div class="kpi"><div class="label">Ticket médio</div><div class="value" id="kpiTicket">—</div></div>
+    <div class="kpi"><div class="label">Novos clientes</div><div class="value" id="kpiNovos">—</div></div>
+  </div>
+
+  <div class="panel">
+    <h2>Marca</h2>
+    <div class="chips" id="marcaChips"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Vendas por marca (selecionadas)</h2>
+    <div class="chart-box"><canvas id="chartMarca"></canvas></div>
+  </div>
+
+  <div class="panel" id="panelGrupo">
+    <div class="panel-head">
+      <h2>Filtro por marca — ranking de lojas</h2>
+      <div class="export-actions">
+        <button class="export-btn" id="btnExportPdf">⬇ Exportar PDF</button>
+        <button class="export-btn" id="btnExportXlsx">⬇ Exportar Excel</button>
+      </div>
+    </div>
+
+    <div class="chips" id="grupoChips"></div>
+    <div class="grupo-summary" id="grupoSummary"></div>
+
+    <div class="chart-box"><canvas id="chartGrupoLoja"></canvas></div>
+    <div class="chart-note" id="chartGrupoLojaNote"></div>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th data-key="local">Loja (localidade)</th>
+            <th>Marcas nesta loja</th>
+            <th class="num" data-key="pedidos">Pedidos</th>
+            <th class="num sorted" data-key="valor">Valor total</th>
+            <th class="num" data-key="ticket">Ticket médio</th>
+          </tr>
+        </thead>
+        <tbody id="tblGrupoBody"></tbody>
+      </table>
+      <div class="empty" id="emptyGrupoMsg" style="display:none">Nenhuma marca selecionada.</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Lojas</h2>
+    <div class="toolbar">
+      <input type="text" id="searchLoja" placeholder="Buscar loja ou cidade...">
+      <button class="link-btn" id="btnCheckAll">Marcar todas</button>
+      <button class="link-btn" id="btnCheckNone">Desmarcar todas</button>
+    </div>
+
+    <div class="chart-box" id="chartLojaBox">
+      <canvas id="chartLoja"></canvas>
+    </div>
+    <div class="chart-note" id="chartLojaNote"></div>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="check"></th>
+            <th data-key="loja">Loja</th>
+            <th data-key="marca">Marca</th>
+            <th data-key="cidade">Cidade</th>
+            <th class="num" data-key="pedidos">Pedidos</th>
+            <th class="num sorted" data-key="valor">Valor total</th>
+            <th class="num" data-key="ticket">Ticket médio</th>
+          </tr>
+        </thead>
+        <tbody id="tblBody"></tbody>
+      </table>
+      <div class="empty" id="emptyMsg" style="display:none">Nenhuma loja carregada ainda. Use "Carregar relatório(s)" para começar.</div>
+    </div>
+  </div>
+
+  <footer>Marca de cada loja identificada a partir do nome da loja no relatório do iFood.</footer>
+
+</div>
+
+<script>
+// ================== estado global ==================
+const SEED_ROWS = [{"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 39191, "nomeLoja": "Forneria Original Pizza - Recreio", "cidade": "RIO DE JANEIRO", "pedidos": 4142, "valor": 585834.74, "taxa": 0.0, "novos": 620}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 311575, "nomeLoja": "Forneria Original Pizza - Botafogo", "cidade": "RIO DE JANEIRO", "pedidos": 4048, "valor": 572463.34, "taxa": 0.0, "novos": 597}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 199946, "nomeLoja": "Forneria Original Pizza - Leblon", "cidade": "RIO DE JANEIRO", "pedidos": 3510, "valor": 523439.9, "taxa": 8125.19, "novos": 740}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 54689, "nomeLoja": "Forneria Original Pizza - Barra", "cidade": "RIO DE JANEIRO", "pedidos": 3037, "valor": 519694.46, "taxa": 17547.0, "novos": 444}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 644475, "nomeLoja": "Forneria Original Pizza - Copacabana", "cidade": "RIO DE JANEIRO", "pedidos": 3405, "valor": 482388.56, "taxa": 494.0, "novos": 985}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1202593, "nomeLoja": "Forneria Original Pizza - Icaraí", "cidade": "NITEROI", "pedidos": 2808, "valor": 394520.82, "taxa": 411.0, "novos": 508}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1226023, "nomeLoja": "Forneria Original Pizza - Flamengo", "cidade": "RIO DE JANEIRO", "pedidos": 2789, "valor": 381191.34, "taxa": 0.0, "novos": 711}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1101486, "nomeLoja": "Forneria Original Pizza - Jd Oceânico", "cidade": "RIO DE JANEIRO", "pedidos": 2366, "valor": 351285.47, "taxa": 3696.0, "novos": 408}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1570165, "nomeLoja": "Forneria Original Pizza - Águas Claras", "cidade": "BRASILIA", "pedidos": 2217, "valor": 318793.03, "taxa": 2749.0, "novos": 303}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 128015, "nomeLoja": "Forneria Original Pizza - Rio 2", "cidade": "RIO DE JANEIRO", "pedidos": 2221, "valor": 303908.22, "taxa": 0.0, "novos": 389}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1279332, "nomeLoja": "Forneria Original Pizza - Tijuca 2", "cidade": "RIO DE JANEIRO", "pedidos": 1882, "valor": 256493.77, "taxa": 0.0, "novos": 426}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1360254, "nomeLoja": "Forneria Original Pizza - Marista", "cidade": "GOIANIA", "pedidos": 1742, "valor": 252218.45, "taxa": 5350.7, "novos": 410}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1662422, "nomeLoja": "Forneria Original Pizza - Jd Goiás", "cidade": "GOIANIA", "pedidos": 1632, "valor": 242490.52, "taxa": 9432.0, "novos": 373}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 181512, "nomeLoja": "Forneria Original Pizza - Freguesia", "cidade": "RIO DE JANEIRO", "pedidos": 1548, "valor": 216636.2, "taxa": 4505.0, "novos": 221}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1975291, "nomeLoja": "Forneria Original Pizza - Recife Zona Norte", "cidade": "RECIFE", "pedidos": 1593, "valor": 211263.23, "taxa": 218.75, "novos": 453}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1290546, "nomeLoja": "Forneria Original Pizza - Vila Velha", "cidade": "VILA VELHA", "pedidos": 1347, "valor": 201933.63, "taxa": 9916.7, "novos": 291}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 589056, "nomeLoja": "Forneria Original Pizza - Méier", "cidade": "RIO DE JANEIRO", "pedidos": 1314, "valor": 177454.86, "taxa": 20.7, "novos": 249}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 642763, "nomeLoja": "Forneria Original Pizza - Ilha do Governador", "cidade": "RIO DE JANEIRO", "pedidos": 1311, "valor": 177387.73, "taxa": 1352.63, "novos": 226}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 640881, "nomeLoja": "Forneria Original Pizza - Valqueire", "cidade": "RIO DE JANEIRO", "pedidos": 1245, "valor": 171351.99, "taxa": 29.5, "novos": 206}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 631882, "nomeLoja": "Forneria Original Pizza - Grajaú / Vl. Isabel", "cidade": "RIO DE JANEIRO", "pedidos": 1206, "valor": 170990.52, "taxa": 2406.0, "novos": 196}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1901939, "nomeLoja": "Forneria Original Pizza - Anápolis", "cidade": "ANAPOLIS", "pedidos": 1188, "valor": 170342.67, "taxa": 7822.9, "novos": 291}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 43136, "nomeLoja": "Forneria Original Pizza - Macaé", "cidade": "MACAE", "pedidos": 1151, "valor": 166489.88, "taxa": 3272.7, "novos": 222}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2367030, "nomeLoja": "Forneria Original Pizza - Campos", "cidade": "CAMPOS DOS GOYTACAZES", "pedidos": 1174, "valor": 145898.1, "taxa": 865.0, "novos": 234}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1225836, "nomeLoja": "Forneria Original Pizza - Nova Iguaçu", "cidade": "NOVA IGUACU", "pedidos": 1068, "valor": 145232.93, "taxa": 0.0, "novos": 138}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 775418, "nomeLoja": "Forneria Original Pizza - Campo Grande", "cidade": "RIO DE JANEIRO", "pedidos": 1133, "valor": 144492.13, "taxa": 982.65, "novos": 300}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1570158, "nomeLoja": "Forneria Original Pizza - Itaipava", "cidade": "PETROPOLIS", "pedidos": 905, "valor": 139760.22, "taxa": 6502.1, "novos": 249}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2608255, "nomeLoja": "Forneria Original Pizza - Recife Zona Sul", "cidade": "RECIFE", "pedidos": 1057, "valor": 139129.44, "taxa": 22.98, "novos": 319}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1617433, "nomeLoja": "Forneria Original Pizza - Juiz de Fora", "cidade": "JUIZ DE FORA", "pedidos": 1027, "valor": 134331.91, "taxa": 1093.97, "novos": 260}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 539087, "nomeLoja": "Forneria Original Pizza - Taquara", "cidade": "RIO DE JANEIRO", "pedidos": 1001, "valor": 130704.57, "taxa": 0.0, "novos": 152}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1513463, "nomeLoja": "Forneria Original Pizza - Oeste", "cidade": "GOIANIA", "pedidos": 970, "valor": 128817.34, "taxa": 681.2, "novos": 272}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 522134, "nomeLoja": "Forneria Original Pizza - Tijuca 1", "cidade": "RIO DE JANEIRO", "pedidos": 894, "valor": 121173.8, "taxa": 18.0, "novos": 139}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1617427, "nomeLoja": "Forneria Original Pizza - Volta Redonda", "cidade": "VOLTA REDONDA", "pedidos": 880, "valor": 120976.5, "taxa": 2701.0, "novos": 151}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1287696, "nomeLoja": "Forneria Original Pizza - Região Oceânica", "cidade": "NITEROI", "pedidos": 824, "valor": 119411.27, "taxa": 2700.0, "novos": 198}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1137251, "nomeLoja": "Forneria Original Pizza - Vila da Penha", "cidade": "RIO DE JANEIRO", "pedidos": 1010, "valor": 119338.63, "taxa": 209.51, "novos": 170}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1376950, "nomeLoja": "Forneria Original Pizza - Petrópolis", "cidade": "PETROPOLIS", "pedidos": 781, "valor": 111468.77, "taxa": 2648.31, "novos": 185}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1585748, "nomeLoja": "Forneria Original Pizza - Belo Horizonte", "cidade": "BELO HORIZONTE", "pedidos": 817, "valor": 104392.19, "taxa": 371.0, "novos": 168}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3193189, "nomeLoja": "Forneria Original Pizza - Sg", "cidade": "SAO GONCALO", "pedidos": 907, "valor": 102904.9, "taxa": 35.0, "novos": 389}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1405360, "nomeLoja": "Forneria Original Pizza - Cabo Frio", "cidade": "CABO FRIO", "pedidos": 648, "valor": 98544.78, "taxa": 5304.8, "novos": 110}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2838045, "nomeLoja": "Forneria Original Pizza - Asa Norte", "cidade": "BRASILIA", "pedidos": 697, "valor": 97945.49, "taxa": 2592.93, "novos": 289}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2142089, "nomeLoja": "Forneria Original Pizza - Campo Belo", "cidade": "SAO PAULO", "pedidos": 624, "valor": 95558.75, "taxa": 3160.0, "novos": 183}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2156870, "nomeLoja": "Forneria Original Pizza - Bangu", "cidade": "RIO DE JANEIRO", "pedidos": 708, "valor": 90621.79, "taxa": 1375.03, "novos": 157}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 122332, "nomeLoja": "Forneria Original Pizza - Vargem Pequena", "cidade": "RIO DE JANEIRO", "pedidos": 621, "valor": 90387.45, "taxa": 8.8, "novos": 120}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1290547, "nomeLoja": "Forneria Original Pizza - Teresópolis", "cidade": "TERESOPOLIS", "pedidos": 532, "valor": 84935.13, "taxa": 3846.6, "novos": 135}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1812234, "nomeLoja": "Forneria Original Pizza - Jd Atlântico", "cidade": "GOIANIA", "pedidos": 601, "valor": 82056.65, "taxa": 2695.4, "novos": 159}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1279328, "nomeLoja": "Forneria Original Pizza - Olaria", "cidade": "RIO DE JANEIRO", "pedidos": 583, "valor": 77565.4, "taxa": 208.9, "novos": 124}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3015106, "nomeLoja": "Forneria Original Pizza - Nova Friburgo", "cidade": "NOVA FRIBURGO", "pedidos": 547, "valor": 75813.96, "taxa": 1942.0, "novos": 204}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2858994, "nomeLoja": "The Duck Pizzaria - Recreio", "cidade": "RIO DE JANEIRO", "pedidos": 811, "valor": 68736.07, "taxa": 1430.0, "novos": 289}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2055927, "nomeLoja": "Forneria Original Pizza - Água Verde", "cidade": "CURITIBA", "pedidos": 572, "valor": 64523.07, "taxa": 350.0, "novos": 83}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1302015, "nomeLoja": "Forneria Original Pizza - Mesquita/nilópolis", "cidade": "MESQUITA", "pedidos": 503, "valor": 64087.12, "taxa": 956.87, "novos": 142}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1068858, "nomeLoja": "Forneria Original Pizza - Duque de Caxias", "cidade": "DUQUE DE CAXIAS", "pedidos": 485, "valor": 59911.91, "taxa": 390.1, "novos": 87}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2423838, "nomeLoja": "Forneria Original Pizza - Búzios", "cidade": "ARMACAO DOS BUZIOS", "pedidos": 346, "valor": 59037.13, "taxa": 2776.0, "novos": 175}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1921046, "nomeLoja": "Forneria Original Pizza - São Pedro", "cidade": "SAO PEDRO DA ALDEIA", "pedidos": 368, "valor": 51535.39, "taxa": 3268.0, "novos": 86}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1919618, "nomeLoja": "Rio Roots Açaí - Jardim Oceânico", "cidade": "RIO DE JANEIRO", "pedidos": 1031, "valor": 44356.21, "taxa": 0.0, "novos": 205}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1444072, "nomeLoja": "The Duck Pizzaria - Barra da Tijuca", "cidade": "RIO DE JANEIRO", "pedidos": 510, "valor": 43885.86, "taxa": 560.0, "novos": 159}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3219055, "nomeLoja": "Forneria Original Pizza - São José", "cidade": "SAO JOSE DOS CAMPOS", "pedidos": 330, "valor": 36181.86, "taxa": 543.42, "novos": 156}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3006128, "nomeLoja": "The Duck Pizzaria - Vila da Penha", "cidade": "RIO DE JANEIRO", "pedidos": 533, "valor": 36026.61, "taxa": 4.99, "novos": 309}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3314223, "nomeLoja": "The Duck Pizzaria - Grajaú", "cidade": "RIO DE JANEIRO", "pedidos": 470, "valor": 35042.67, "taxa": 593.0, "novos": 237}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1777537, "nomeLoja": "Condado Burger by Forneria Original", "cidade": "RIO DE JANEIRO", "pedidos": 329, "valor": 29204.31, "taxa": 921.86, "novos": 150}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2608718, "nomeLoja": "Le Tuce Salada - Barra", "cidade": "RIO DE JANEIRO", "pedidos": 414, "valor": 27579.57, "taxa": 2368.0, "novos": 118}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3140605, "nomeLoja": "The Duck Pizzaria - Nova Iguaçu", "cidade": "NOVA IGUACU", "pedidos": 363, "valor": 24135.67, "taxa": 0.0, "novos": 219}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2690079, "nomeLoja": "Le Tuce Salada - Jd. Oceânico", "cidade": "RIO DE JANEIRO", "pedidos": 419, "valor": 22463.87, "taxa": 1591.0, "novos": 105}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1975301, "nomeLoja": "Forneria Original Pizza - Campinas", "cidade": "CAMPINAS", "pedidos": 167, "valor": 22408.67, "taxa": 621.72, "novos": 103}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3351684, "nomeLoja": "The Duck Pizzaria - Anapolis", "cidade": "ANAPOLIS", "pedidos": 240, "valor": 21214.45, "taxa": 429.8, "novos": 144}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2743121, "nomeLoja": "Rio Roots Açaí - Freguesia", "cidade": "RIO DE JANEIRO", "pedidos": 325, "valor": 19424.14, "taxa": 1357.49, "novos": 73}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2440208, "nomeLoja": "Forneria Original Pizza - Eldorado", "cidade": "GOIANIA", "pedidos": 110, "valor": 16602.3, "taxa": 135.6, "novos": 34}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2079691, "nomeLoja": "Woodstock Brownie & Brookie - Macaé", "cidade": "MACAE", "pedidos": 288, "valor": 14499.39, "taxa": 1697.7, "novos": 100}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3407158, "nomeLoja": "The Duck Pizzaria - São José", "cidade": "SAO JOSE DOS CAMPOS", "pedidos": 211, "valor": 13698.07, "taxa": 190.5, "novos": 161}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2995665, "nomeLoja": "Le Tuce Salada - Flamengo", "cidade": "RIO DE JANEIRO", "pedidos": 245, "valor": 13679.37, "taxa": 604.0, "novos": 100}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2952521, "nomeLoja": "Le Tuce Salada - Leblon", "cidade": "RIO DE JANEIRO", "pedidos": 224, "valor": 13652.6, "taxa": 1479.5, "novos": 60}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2782674, "nomeLoja": "Le Tuce Salada - Marista", "cidade": "GOIANIA", "pedidos": 200, "valor": 13592.71, "taxa": 1256.5, "novos": 90}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2498031, "nomeLoja": "Rio Roots Açaí - Duque de Caxias", "cidade": "DUQUE DE CAXIAS", "pedidos": 290, "valor": 12619.92, "taxa": 548.1, "novos": 50}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3140606, "nomeLoja": "The Duck Pizzaria - Vila Valqueire", "cidade": "RIO DE JANEIRO", "pedidos": 192, "valor": 12317.64, "taxa": 17.7, "novos": 113}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 1822462, "nomeLoja": "Rio Roots Açaí - Barra da Tijuca", "cidade": "RIO DE JANEIRO", "pedidos": 152, "valor": 11666.55, "taxa": 1090.64, "novos": 30}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525944, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Campo Belo", "cidade": "SAO PAULO", "pedidos": 77, "valor": 11403.25, "taxa": 829.0, "novos": 37}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3339508, "nomeLoja": "The Duck Pizzaria - Bangu", "cidade": "RIO DE JANEIRO", "pedidos": 161, "valor": 11340.69, "taxa": 127.76, "novos": 123}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986799, "nomeLoja": "Forneria Original + Seara -  Itaipava", "cidade": "PETROPOLIS", "pedidos": 79, "valor": 11166.65, "taxa": 310.0, "novos": 64}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2890604, "nomeLoja": "Rio Roots Açaí - Macaé", "cidade": "MACAE", "pedidos": 178, "valor": 9342.41, "taxa": 1207.5, "novos": 48}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2782711, "nomeLoja": "Le Tuce Salada - Anápolis", "cidade": "ANAPOLIS", "pedidos": 141, "valor": 9206.74, "taxa": 1023.6, "novos": 42}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525963, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Leblon", "cidade": "RIO DE JANEIRO", "pedidos": 94, "valor": 9192.57, "taxa": 172.06, "novos": 63}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2608239, "nomeLoja": "Forneria Original Massas - Anápolis", "cidade": "ANAPOLIS", "pedidos": 107, "valor": 8921.09, "taxa": 807.3, "novos": 36}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3343928, "nomeLoja": "The Duck Pizzaria - Flamengo", "cidade": "RIO DE JANEIRO", "pedidos": 130, "valor": 8851.58, "taxa": 0.0, "novos": 75}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2927605, "nomeLoja": "Woodstock Brownies & Brookies - Leblon", "cidade": "RIO DE JANEIRO", "pedidos": 145, "valor": 8795.28, "taxa": 886.58, "novos": 104}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2927602, "nomeLoja": "Rio Roots Açaí - Leblon", "cidade": "RIO DE JANEIRO", "pedidos": 135, "valor": 8772.2, "taxa": 825.7, "novos": 48}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2690074, "nomeLoja": "Rio Roots Açaí - Volta Redonda", "cidade": "VOLTA REDONDA", "pedidos": 154, "valor": 8316.31, "taxa": 813.0, "novos": 44}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3234479, "nomeLoja": "Le Tuce Salada - Jd. Goiás", "cidade": "GOIANIA", "pedidos": 131, "valor": 7849.36, "taxa": 815.3, "novos": 67}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2890711, "nomeLoja": "Forneria Original Massas - Barra da Tijuca", "cidade": "RIO DE JANEIRO", "pedidos": 110, "valor": 7714.92, "taxa": 588.0, "novos": 72}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525955, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Icarai", "cidade": "NITEROI", "pedidos": 65, "valor": 7651.03, "taxa": 0.0, "novos": 27}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525957, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Campinas", "cidade": "CAMPINAS", "pedidos": 56, "valor": 7603.64, "taxa": 319.32, "novos": 38}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2711454, "nomeLoja": "Woodstock Brownies & Brookies - Rg Oceânica", "cidade": "NITEROI", "pedidos": 157, "valor": 7600.2, "taxa": 310.0, "novos": 102}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986791, "nomeLoja": "Forneria Original + Seara -  Macaé", "cidade": "MACAE", "pedidos": 63, "valor": 7595.0, "taxa": 159.0, "novos": 46}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986774, "nomeLoja": "Forneria Original + Seara -  Tijuca 2", "cidade": "RIO DE JANEIRO", "pedidos": 59, "valor": 7410.06, "taxa": 0.0, "novos": 41}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2941337, "nomeLoja": "Le Tuce - Volta Redonda", "cidade": "VOLTA REDONDA", "pedidos": 140, "valor": 7301.42, "taxa": 657.0, "novos": 55}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3199110, "nomeLoja": "The Duck Pizzaria - Freguesia", "cidade": "RIO DE JANEIRO", "pedidos": 96, "valor": 7268.22, "taxa": 0.0, "novos": 56}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2646217, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Recife Zona Sul", "cidade": "RECIFE", "pedidos": 78, "valor": 7242.96, "taxa": 0.0, "novos": 47}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2134451, "nomeLoja": "Woodstock - Brownies & Brookies - Volta Redonda", "cidade": "VOLTA REDONDA", "pedidos": 152, "valor": 7055.67, "taxa": 746.0, "novos": 71}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3234475, "nomeLoja": "The Duck Pizzaria - Jd. Goiás", "cidade": "GOIANIA", "pedidos": 80, "valor": 7033.43, "taxa": 128.8, "novos": 46}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2624964, "nomeLoja": "Forneria Original Massas - Jd. Oceânico", "cidade": "RIO DE JANEIRO", "pedidos": 145, "valor": 6998.65, "taxa": 118.1, "novos": 80}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2063416, "nomeLoja": "Rio Roots Açaí - Recreio", "cidade": "RIO DE JANEIRO", "pedidos": 151, "valor": 6952.42, "taxa": 220.91, "novos": 77}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2995663, "nomeLoja": "Forneria Original Massas - Flamengo", "cidade": "RIO DE JANEIRO", "pedidos": 111, "valor": 6929.44, "taxa": 405.0, "novos": 75}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2528123, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Região Oceânica", "cidade": "NITEROI", "pedidos": 67, "valor": 6907.51, "taxa": 0.0, "novos": 34}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2528142, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Volta Redonda", "cidade": "VOLTA REDONDA", "pedidos": 86, "valor": 6886.26, "taxa": 0.0, "novos": 53}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986810, "nomeLoja": "Forneria Original + Seara -  Campo Grande", "cidade": "RIO DE JANEIRO", "pedidos": 52, "valor": 6378.53, "taxa": 21.99, "novos": 46}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2079384, "nomeLoja": "Woodstock Brownies & Brookies - Jd. Oceano", "cidade": "RIO DE JANEIRO", "pedidos": 128, "valor": 6251.0, "taxa": 616.0, "novos": 67}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525950, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Flamengo", "cidade": "RIO DE JANEIRO", "pedidos": 56, "valor": 6218.8, "taxa": 0.0, "novos": 31}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2743122, "nomeLoja": "Forneria Original Massas - Freguesia", "cidade": "RIO DE JANEIRO", "pedidos": 70, "valor": 6128.14, "taxa": 536.43, "novos": 46}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3199111, "nomeLoja": "The Duck Pizzaria - Jd. Oceânico", "cidade": "RIO DE JANEIRO", "pedidos": 71, "valor": 5717.31, "taxa": 0.0, "novos": 30}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525964, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Macaé", "cidade": "MACAE", "pedidos": 43, "valor": 5176.75, "taxa": 230.0, "novos": 27}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986782, "nomeLoja": "Forneria Original + Seara -  Petrópolis", "cidade": "PETROPOLIS", "pedidos": 47, "valor": 5112.77, "taxa": 60.83, "novos": 38}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2528122, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Recife Zona Norte", "cidade": "RECIFE", "pedidos": 50, "valor": 5033.17, "taxa": 47.0, "novos": 21}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986766, "nomeLoja": "Forneria Original + Seara - Recife Zona Norte", "cidade": "RECIFE", "pedidos": 37, "valor": 4755.79, "taxa": 0.0, "novos": 26}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986802, "nomeLoja": "Forneria Original + Seara -  Icaraí", "cidade": "NITEROI", "pedidos": 37, "valor": 4731.52, "taxa": 0.0, "novos": 34}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986786, "nomeLoja": "Forneria Original + Seara -  Mesquita / Nilópolis", "cidade": "MESQUITA", "pedidos": 40, "valor": 4718.7, "taxa": 52.94, "novos": 29}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2927997, "nomeLoja": "Rio Roots Açaí - Marista", "cidade": "GOIANIA", "pedidos": 96, "valor": 4687.31, "taxa": 274.4, "novos": 33}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2063307, "nomeLoja": "Woodstock - Brownies & Brookies - Barra da Tijuca", "cidade": "RIO DE JANEIRO", "pedidos": 86, "valor": 4678.29, "taxa": 539.0, "novos": 32}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2528137, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Juiz de Fora", "cidade": "JUIZ DE FORA", "pedidos": 43, "valor": 4671.45, "taxa": 82.0, "novos": 25}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2928006, "nomeLoja": "Rio Roots Açaí - Anápolis", "cidade": "ANAPOLIS", "pedidos": 67, "valor": 4637.43, "taxa": 445.1, "novos": 20}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986797, "nomeLoja": "Forneria Original + Seara -  Jd Goiás", "cidade": "GOIANIA", "pedidos": 33, "valor": 4542.24, "taxa": 165.7, "novos": 27}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525939, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Botafogo", "cidade": "RIO DE JANEIRO", "pedidos": 34, "valor": 4439.05, "taxa": 0.0, "novos": 20}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986813, "nomeLoja": "Forneria Original + Seara -  Búzios", "cidade": "ARMACAO DOS BUZIOS", "pedidos": 31, "valor": 4417.25, "taxa": 142.0, "novos": 23}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525949, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Copacabana", "cidade": "RIO DE JANEIRO", "pedidos": 40, "valor": 4344.22, "taxa": 0.0, "novos": 25}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986796, "nomeLoja": "Forneria Original + Seara - Jd Oceânico", "cidade": "RIO DE JANEIRO", "pedidos": 31, "valor": 4235.14, "taxa": 0.0, "novos": 27}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3234483, "nomeLoja": "Rio Roots Açaí - Jd. Goiás", "cidade": "GOIANIA", "pedidos": 70, "valor": 4187.62, "taxa": 444.9, "novos": 17}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986806, "nomeLoja": "Forneria Original + Seara -  Flamengo", "cidade": "RIO DE JANEIRO", "pedidos": 32, "valor": 4174.43, "taxa": 0.0, "novos": 26}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986779, "nomeLoja": "Forneria Original + Seara -  Rio 2", "cidade": "RIO DE JANEIRO", "pedidos": 35, "valor": 4137.05, "taxa": 0.0, "novos": 26}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2952637, "nomeLoja": "Le Tuce Salada - Jd. Atlântico", "cidade": "GOIANIA", "pedidos": 50, "valor": 4059.8, "taxa": 322.6, "novos": 16}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2573979, "nomeLoja": "Forneria Original Vegana - Recreio", "cidade": "RIO DE JANEIRO", "pedidos": 33, "valor": 3964.3, "taxa": 32.0, "novos": 10}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986781, "nomeLoja": "Forneria Original + Seara -  Recreio", "cidade": "RIO DE JANEIRO", "pedidos": 31, "valor": 3899.44, "taxa": 0.0, "novos": 22}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986821, "nomeLoja": "Forneria Original + Seara -  Anápolis", "cidade": "ANAPOLIS", "pedidos": 32, "valor": 3804.15, "taxa": 133.5, "novos": 27}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3235745, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - São José dos Campos", "cidade": "SAO JOSE DOS CAMPOS", "pedidos": 31, "valor": 3782.83, "taxa": 129.84, "novos": 9}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2528140, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Barra", "cidade": "RIO DE JANEIRO", "pedidos": 39, "valor": 3781.06, "taxa": 14.0, "novos": 16}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2890726, "nomeLoja": "Poke Moon by Forneria Original - Barra da Tijuca", "cidade": "RIO DE JANEIRO", "pedidos": 46, "valor": 3777.05, "taxa": 119.0, "novos": 17}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2528134, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Vila Velha", "cidade": "VILA VELHA", "pedidos": 33, "valor": 3762.13, "taxa": 272.1, "novos": 13}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986771, "nomeLoja": "Forneria Original + Seara - Vila da Penha", "cidade": "RIO DE JANEIRO", "pedidos": 22, "valor": 3703.49, "taxa": 33.94, "novos": 9}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3019123, "nomeLoja": "Woodstock Brownies & Brookies - N Friburgo", "cidade": "NOVA FRIBURGO", "pedidos": 64, "valor": 3677.52, "taxa": 340.5, "novos": 35}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525972, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Petrópolis", "cidade": "PETROPOLIS", "pedidos": 29, "valor": 3677.04, "taxa": 113.81, "novos": 12}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2988377, "nomeLoja": "Forneria Original + Seara - Teresópolis", "cidade": "TERESOPOLIS", "pedidos": 27, "valor": 3643.84, "taxa": 73.4, "novos": 21}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3234433, "nomeLoja": "Woodstock Brownies & Brookies - São José", "cidade": "SAO JOSE DOS CAMPOS", "pedidos": 60, "valor": 3612.59, "taxa": 653.4, "novos": 36}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2988330, "nomeLoja": "Forneria Original + Seara -  Vila Velha", "cidade": "VILA VELHA", "pedidos": 29, "valor": 3424.27, "taxa": 177.4, "novos": 11}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986812, "nomeLoja": "Forneria Original + Seara -  Cabo Frio", "cidade": "CABO FRIO", "pedidos": 29, "valor": 3394.59, "taxa": 40.5, "novos": 24}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525956, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Ilha", "cidade": "RIO DE JANEIRO", "pedidos": 31, "valor": 3281.9, "taxa": 27.76, "novos": 22}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3731195, "nomeLoja": "Le Tuce Salada - Recreio", "cidade": "RIO DE JANEIRO", "pedidos": 61, "valor": 3269.31, "taxa": 80.98, "novos": 35}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2743120, "nomeLoja": "Woodstock Brownies & Brookies - Freguesia", "cidade": "RIO DE JANEIRO", "pedidos": 56, "valor": 3255.38, "taxa": 144.85, "novos": 29}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986785, "nomeLoja": "Forneria Original + Seara -  Nova Iguaçu", "cidade": "NOVA IGUACU", "pedidos": 29, "valor": 3244.53, "taxa": 0.0, "novos": 13}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2463176, "nomeLoja": "Poke Moon by Forneria Original - Jd. Oceânico", "cidade": "RIO DE JANEIRO", "pedidos": 47, "valor": 3226.89, "taxa": 196.0, "novos": 25}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986795, "nomeLoja": "Forneria Original + Seara - Juiz de Fora", "cidade": "JUIZ DE FORA", "pedidos": 22, "valor": 3156.03, "taxa": 42.0, "novos": 14}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986814, "nomeLoja": "Forneria Original + Seara -  Botafogo", "cidade": "RIO DE JANEIRO", "pedidos": 26, "valor": 3154.63, "taxa": 0.0, "novos": 22}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986788, "nomeLoja": "Forneria Original + Seara -  Méier", "cidade": "RIO DE JANEIRO", "pedidos": 24, "valor": 3153.53, "taxa": 9.9, "novos": 19}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986768, "nomeLoja": "Forneria Original + Seara - Volta Redonda", "cidade": "VOLTA REDONDA", "pedidos": 29, "valor": 3127.5, "taxa": 0.0, "novos": 19}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2995662, "nomeLoja": "Rio Roots Açaí - Flamengo", "cidade": "RIO DE JANEIRO", "pedidos": 65, "valor": 3125.33, "taxa": 188.0, "novos": 32}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2528141, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Jardim Oceânico", "cidade": "RIO DE JANEIRO", "pedidos": 33, "valor": 3068.72, "taxa": 0.0, "novos": 21}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2846844, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Asa Norte", "cidade": "BRASILIA", "pedidos": 28, "valor": 3062.69, "taxa": 23.89, "novos": 15}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986811, "nomeLoja": "Forneria Original + Seara -  Campo Belo", "cidade": "SAO PAULO", "pedidos": 17, "valor": 3048.01, "taxa": 235.0, "novos": 4}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986773, "nomeLoja": "Forneria Original + Seara - Valqueire", "cidade": "RIO DE JANEIRO", "pedidos": 25, "valor": 3045.0, "taxa": 0.0, "novos": 18}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2528153, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Tijuca 2", "cidade": "RIO DE JANEIRO", "pedidos": 24, "valor": 2928.11, "taxa": 0.0, "novos": 10}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986818, "nomeLoja": "Forneria Original + Seara -  Belo Horizonte", "cidade": "BELO HORIZONTE", "pedidos": 20, "valor": 2841.5, "taxa": 0.0, "novos": 11}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525969, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Nova Iguaçu", "cidade": "NOVA IGUACU", "pedidos": 31, "valor": 2807.74, "taxa": 0.0, "novos": 19}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2219127, "nomeLoja": "Woodstock Brownie & Brookie - Recreio", "cidade": "RIO DE JANEIRO", "pedidos": 50, "valor": 2782.13, "taxa": 259.94, "novos": 30}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2528128, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Teresópolis", "cidade": "TERESOPOLIS", "pedidos": 28, "valor": 2734.9, "taxa": 111.6, "novos": 9}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986778, "nomeLoja": "Forneria Original + Seara -  São Pedro", "cidade": "SAO PEDRO DA ALDEIA", "pedidos": 19, "valor": 2592.96, "taxa": 103.0, "novos": 15}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986820, "nomeLoja": "Forneria Original + Seara -  Bangu", "cidade": "RIO DE JANEIRO", "pedidos": 22, "valor": 2563.99, "taxa": 7.97, "novos": 18}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525935, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Água Verde", "cidade": "CURITIBA", "pedidos": 27, "valor": 2561.44, "taxa": 30.0, "novos": 9}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986805, "nomeLoja": "Forneria Original + Seara -  Freguesia", "cidade": "RIO DE JANEIRO", "pedidos": 18, "valor": 2500.0, "taxa": 15.98, "novos": 10}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2528120, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Olaria", "cidade": "RIO DE JANEIRO", "pedidos": 32, "valor": 2442.98, "taxa": 0.0, "novos": 15}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2995664, "nomeLoja": "Woodstock Brownies & Brookies - Flamengo", "cidade": "RIO DE JANEIRO", "pedidos": 45, "valor": 2428.7, "taxa": 194.7, "novos": 26}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986825, "nomeLoja": "Forneria Original + Seara -  Águas Claras", "cidade": "BRASILIA", "pedidos": 16, "valor": 2238.82, "taxa": 70.0, "novos": 12}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2528125, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - São Pedro da Aldeia", "cidade": "SAO PEDRO DA ALDEIA", "pedidos": 20, "valor": 2237.26, "taxa": 141.0, "novos": 15}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986803, "nomeLoja": "Forneria Original + Seara -  Grajaú / Vl. Isabel", "cidade": "RIO DE JANEIRO", "pedidos": 23, "valor": 2229.01, "taxa": 0.0, "novos": 17}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2528130, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Vila da Penha", "cidade": "RIO DE JANEIRO", "pedidos": 21, "valor": 2222.4, "taxa": 0.0, "novos": 8}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2528124, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Rio 2", "cidade": "RIO DE JANEIRO", "pedidos": 19, "valor": 2196.7, "taxa": 0.0, "novos": 7}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2264941, "nomeLoja": "Conde Smash Burger", "cidade": "RIO DE JANEIRO", "pedidos": 37, "valor": 2171.01, "taxa": 67.99, "novos": 24}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986780, "nomeLoja": "Forneria Original + Seara -  Região Oceânica", "cidade": "NITEROI", "pedidos": 17, "valor": 2169.02, "taxa": 0.0, "novos": 14}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986798, "nomeLoja": "Forneria Original + Seara -  Jd Atlântico", "cidade": "GOIANIA", "pedidos": 17, "valor": 2166.52, "taxa": 45.7, "novos": 14}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986790, "nomeLoja": "Forneria Original + Seara -  Marista", "cidade": "GOIANIA", "pedidos": 18, "valor": 2159.12, "taxa": 50.4, "novos": 17}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2480040, "nomeLoja": "Forneria Original Massas - Marista", "cidade": "GOIANIA", "pedidos": 29, "valor": 2124.19, "taxa": 98.6, "novos": 20}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3019122, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Nova Friburgo", "cidade": "NOVA FRIBURGO", "pedidos": 18, "valor": 2042.76, "taxa": 95.0, "novos": 12}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2498032, "nomeLoja": "Woodstock - Brownies & Brookies - Duque de Caxias", "cidade": "DUQUE DE CAXIAS", "pedidos": 47, "valor": 2042.1, "taxa": 143.8, "novos": 31}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525954, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Grajaú", "cidade": "RIO DE JANEIRO", "pedidos": 18, "valor": 2022.53, "taxa": 7.0, "novos": 8}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986776, "nomeLoja": "Forneria Original + Seara -  Tijuca 1", "cidade": "RIO DE JANEIRO", "pedidos": 18, "valor": 2014.92, "taxa": 0.0, "novos": 13}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2988788, "nomeLoja": "Forneria Original + Seara - Campos", "cidade": "CAMPOS DOS GOYTACAZES", "pedidos": 17, "valor": 1987.99, "taxa": 5.0, "novos": 15}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986772, "nomeLoja": "Forneria Original + Seara - Vargem Pequena", "cidade": "RIO DE JANEIRO", "pedidos": 15, "valor": 1966.9, "taxa": 95.1, "novos": 9}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525945, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Campo de Goytacazes", "cidade": "CAMPOS DOS GOYTACAZES", "pedidos": 18, "valor": 1964.7, "taxa": 0.0, "novos": 7}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2480036, "nomeLoja": "Forneria Original Massas - Oeste", "cidade": "GOIANIA", "pedidos": 26, "valor": 1913.67, "taxa": 0.0, "novos": 18}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525965, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Marista", "cidade": "GOIANIA", "pedidos": 17, "valor": 1893.8, "taxa": 29.6, "novos": 8}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2528119, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Bangu", "cidade": "RIO DE JANEIRO", "pedidos": 16, "valor": 1849.62, "taxa": 32.0, "novos": 10}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2528131, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Valqueire", "cidade": "RIO DE JANEIRO", "pedidos": 15, "valor": 1846.71, "taxa": 0.0, "novos": 9}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525938, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Belo Horizonte", "cidade": "BELO HORIZONTE", "pedidos": 19, "valor": 1840.7, "taxa": 0.0, "novos": 13}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3750763, "nomeLoja": "Le Tuce Salada - Asa Norte", "cidade": "BRASILIA", "pedidos": 27, "valor": 1830.84, "taxa": 216.74, "novos": 20}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3212050, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - SG", "cidade": "SAO GONCALO", "pedidos": 21, "valor": 1779.97, "taxa": 0.0, "novos": 18}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986783, "nomeLoja": "Forneria Original + Seara -  Olaria", "cidade": "RIO DE JANEIRO", "pedidos": 13, "valor": 1766.8, "taxa": 90.0, "novos": 11}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525970, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Oeste", "cidade": "GOIANIA", "pedidos": 19, "valor": 1745.37, "taxa": 0.0, "novos": 13}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525967, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Nilópolis", "cidade": "MESQUITA", "pedidos": 17, "valor": 1609.03, "taxa": 0.0, "novos": 13}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3234476, "nomeLoja": "Forneria Original Massas - Jd. Goiás", "cidade": "GOIANIA", "pedidos": 16, "valor": 1510.96, "taxa": 118.8, "novos": 12}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525962, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Jardim Goiás", "cidade": "GOIANIA", "pedidos": 12, "valor": 1452.8, "taxa": 20.8, "novos": 8}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3686316, "nomeLoja": "Forneria Original Turbo - Botafogo", "cidade": "RIO DE JANEIRO", "pedidos": 11, "valor": 1425.96, "taxa": 20.97, "novos": 11}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3019120, "nomeLoja": "Forneria Original + Seara - Nova Friburgo", "cidade": "NOVA FRIBURGO", "pedidos": 15, "valor": 1396.59, "taxa": 12.0, "novos": 15}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986819, "nomeLoja": "Forneria Original + Seara - Barra da Tijuca", "cidade": "RIO DE JANEIRO", "pedidos": 14, "valor": 1361.6, "taxa": 0.0, "novos": 13}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2988329, "nomeLoja": "Forneria Original + Seara - Ilha do Governador", "cidade": "RIO DE JANEIRO", "pedidos": 14, "valor": 1352.38, "taxa": 6.93, "novos": 13}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525942, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Cabo Frio", "cidade": "CABO FRIO", "pedidos": 14, "valor": 1351.82, "taxa": 80.8, "novos": 8}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525940, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Buzios", "cidade": "ARMACAO DOS BUZIOS", "pedidos": 12, "valor": 1306.23, "taxa": 61.0, "novos": 12}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2528138, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Águas Claras", "cidade": "BRASILIA", "pedidos": 14, "valor": 1254.3, "taxa": 0.0, "novos": 7}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525947, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Campo Grande", "cidade": "RIO DE JANEIRO", "pedidos": 11, "valor": 1252.26, "taxa": 35.96, "novos": 6}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986794, "nomeLoja": "Forneria Original + Seara -  Leblon", "cidade": "RIO DE JANEIRO", "pedidos": 10, "valor": 1232.82, "taxa": 6.9, "novos": 8}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525960, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Jardim Atlântico", "cidade": "GOIANIA", "pedidos": 12, "valor": 1221.42, "taxa": 29.7, "novos": 7}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986808, "nomeLoja": "Forneria Original + Seara -  Copacabana", "cidade": "RIO DE JANEIRO", "pedidos": 10, "valor": 1202.0, "taxa": 6.0, "novos": 7}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525952, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Freguesia", "cidade": "RIO DE JANEIRO", "pedidos": 11, "valor": 1163.61, "taxa": 0.0, "novos": 7}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3609614, "nomeLoja": "Woodstock Brownies & Brookies - Marista", "cidade": "GOIANIA", "pedidos": 23, "valor": 1108.68, "taxa": 111.6, "novos": 21}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3609658, "nomeLoja": "Woodstock Brownies & Brookies - Jd. Goias", "cidade": "GOIANIA", "pedidos": 46, "valor": 1060.26, "taxa": 171.8, "novos": 29}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3609695, "nomeLoja": "Woodstock Brownies & Brookies - Anapolis", "cidade": "ANAPOLIS", "pedidos": 26, "valor": 1060.03, "taxa": 159.1, "novos": 14}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2988478, "nomeLoja": "Forneria Original + Seara - Asa Norte", "cidade": "BRASILIA", "pedidos": 8, "valor": 973.86, "taxa": 32.97, "novos": 6}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3609789, "nomeLoja": "Woodstock Brownies & Brookies - Jd Atlantico", "cidade": "GOIANIA", "pedidos": 22, "valor": 962.7, "taxa": 132.7, "novos": 16}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986824, "nomeLoja": "Forneria Original + Seara - Água Verde", "cidade": "CURITIBA", "pedidos": 9, "valor": 927.01, "taxa": 0.0, "novos": 5}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3212055, "nomeLoja": "Forneria Original + Seara - Sg", "cidade": "SAO GONCALO", "pedidos": 8, "valor": 919.48, "taxa": 0.0, "novos": 5}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2952535, "nomeLoja": "Rio Roots Açaí - Jd Atlântico", "cidade": "GOIANIA", "pedidos": 16, "valor": 881.4, "taxa": 90.2, "novos": 10}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986777, "nomeLoja": "Forneria Original + Seara -  Taquara", "cidade": "RIO DE JANEIRO", "pedidos": 7, "valor": 847.0, "taxa": 0.0, "novos": 7}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3620399, "nomeLoja": "Forneria Original Turbo - Leblon", "cidade": "RIO DE JANEIRO", "pedidos": 4, "valor": 794.99, "taxa": 0.0, "novos": 4}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2988328, "nomeLoja": "Forneria Original + Seara - Duque de Caxias", "cidade": "DUQUE DE CAXIAS", "pedidos": 7, "valor": 757.41, "taxa": 0.0, "novos": 4}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3235746, "nomeLoja": "Forneria Original + Seara - São José dos Campos", "cidade": "SAO JOSE DOS CAMPOS", "pedidos": 6, "valor": 710.48, "taxa": 0.0, "novos": 5}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3741425, "nomeLoja": "Poke Moon - Recreio", "cidade": "RIO DE JANEIRO", "pedidos": 10, "valor": 700.17, "taxa": 37.48, "novos": 8}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2480037, "nomeLoja": "Forneria Original Massas - Jd Atlântico", "cidade": "GOIANIA", "pedidos": 9, "valor": 685.6, "taxa": 61.3, "novos": 3}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2986800, "nomeLoja": "Forneria Original + Seara -  Campinas", "cidade": "CAMPINAS", "pedidos": 6, "valor": 606.51, "taxa": 9.98, "novos": 4}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2528126, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Taquara", "cidade": "RIO DE JANEIRO", "pedidos": 7, "valor": 575.9, "taxa": 0.0, "novos": 3}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3741395, "nomeLoja": "Forneria Original Massas - Recreio", "cidade": "RIO DE JANEIRO", "pedidos": 8, "valor": 564.39, "taxa": 61.99, "novos": 7}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525948, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Duque de Caxias", "cidade": "DUQUE DE CAXIAS", "pedidos": 6, "valor": 536.3, "taxa": 0.0, "novos": 1}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525936, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Anápolis", "cidade": "ANAPOLIS", "pedidos": 6, "valor": 520.6, "taxa": 35.7, "novos": 5}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3620429, "nomeLoja": "Forneria Original Turbo - Região Oceânica", "cidade": "NITEROI", "pedidos": 5, "valor": 480.48, "taxa": 10.99, "novos": 5}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3622976, "nomeLoja": "Forneria Original Turbo - Marista", "cidade": "GOIANIA", "pedidos": 5, "valor": 424.34, "taxa": 3.99, "novos": 5}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2528154, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Tijuca 1", "cidade": "RIO DE JANEIRO", "pedidos": 4, "valor": 393.0, "taxa": 0.0, "novos": 2}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3686370, "nomeLoja": "Forneria Original Turbo - Flamengo", "cidade": "RIO DE JANEIRO", "pedidos": 4, "valor": 379.53, "taxa": 19.94, "novos": 4}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3622952, "nomeLoja": "Forneria Original Turbo - Jd. Oceânico", "cidade": "RIO DE JANEIRO", "pedidos": 2, "valor": 226.68, "taxa": 12.98, "novos": 2}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 3686287, "nomeLoja": "Forneria Original Turbo - Copacabana", "cidade": "RIO DE JANEIRO", "pedidos": 2, "valor": 218.68, "taxa": 1.99, "novos": 2}, {"sourceFile": "Relatório inicial (jun/2026).xlsx", "idLoja": 2525933, "nomeLoja": "Forneria Original Pizza - Feita Para Você! - Eldorado", "cidade": "GOIANIA", "pedidos": 1, "valor": 49.8, "taxa": 0.0, "novos": 1}];
+const SEED_PERIODO = "01/06/2026 - 30/06/2026";
+const SEED_FILE_NAME = "Relatório inicial (jun/2026).xlsx";
+
+let RAW_ROWS = [...SEED_ROWS];        // linhas cruas por loja+logística, de todos os arquivos carregados
+let LOADED_FILES = SEED_ROWS.length ? [{
+  name: SEED_FILE_NAME,
+  rows: new Set(SEED_ROWS.map(r=>r.idLoja)).size,
+  periodo: SEED_PERIODO
+}] : [];    // {name, rows, error}
+let STORES = [];          // agregado por loja (o que a UI usa)
+let activeMarcas = new Set();
+let checkedStores = new Set();
+let searchTerm = '';
+let sortKey = 'valor';
+let sortDir = -1;
+
+let activeGrupos = new Set();
+let sortKeyGrupo = 'valor';
+let sortDirGrupo = -1;
+
+const fmtMoney = v => 'R$ ' + (v||0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtInt = v => (v||0).toLocaleString('pt-BR');
+
+function normalizeHeader(s){
+  return String(s||'')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase().trim();
+}
+
+function brandOf(nome){
+  const n = String(nome||'').trim();
+  const low = n.toLowerCase();
+  if(low.startsWith('forneria original')) return 'Forneria Original';
+  if(low.startsWith('woodstock')) return 'Woodstock Brownies & Brookies';
+  if(low.startsWith('le tuce')) return 'Le Tuce';
+  if(low.startsWith('rio roots')) return 'Rio Roots Açaí';
+  if(low.startsWith('the duck')) return 'The Duck Pizzaria';
+  if(low.startsWith('poke moon')) return 'Poke Moon';
+  if(low.startsWith('condado burger')) return 'Condado Burger';
+  if(low.startsWith('conde smash burger')) return 'Conde Smash Burger';
+  return (n.split(' - ')[0] || 'Sem marca').trim();
+}
+
+// Agrupamento usado no painel "Filtro por marca": junta linhas do mesmo
+// conceito que às vezes aparecem com nomes/variações diferentes no export do iFood.
+function grupoOf(nome){
+  const n = String(nome||'').trim();
+  const low = n.toLowerCase();
+  if(low.startsWith('forneria original massas')) return 'Forneria Original Massas';
+  if(low.startsWith('forneria original')) return 'Forneria Original';
+  if(low.startsWith('condado burger') || low.startsWith('conde smash burger')) return 'Condado';
+  if(low.startsWith('woodstock')) return 'Woodstock';
+  if(low.startsWith('the duck')) return 'The Duck';
+  if(low.startsWith('le tuce')) return 'Le Tuce';
+  if(low.startsWith('poke moon')) return 'Poke Moon';
+  if(low.startsWith('rio roots')) return 'Rio Roots';
+  return (n.split(' - ')[0] || 'Sem marca').trim();
+}
+
+// "Loja" aqui = localidade física (ex.: Macaé), já que uma mesma cozinha
+// costuma operar várias marcas virtuais no mesmo endereço.
+function localOf(nome){
+  const n = String(nome||'').trim();
+  const idx = n.lastIndexOf(' - ');
+  if(idx === -1) return n;
+  return n.slice(idx+3).trim();
+}
+
+// Alguns exports do iFood usam um zip "streaming" que faz o SheetJS logar
+// avisos de "Bad (un)compressed size" no console — a leitura funciona normalmente,
+// então filtramos só essas mensagens específicas para não assustar à toa.
+function readWorkbookQuietly(buf){
+  const originalError = console.error;
+  console.error = function(...args){
+    const msg = String(args[0] || '');
+    if(/Bad (un)?compressed size/.test(msg)) return;
+    originalError.apply(console, args);
+  };
+  try{
+    return XLSX.read(buf, {type:'array'});
+  } finally {
+    console.error = originalError;
+  }
+}
+
+function showError(msg){
+  const el = document.getElementById('errorBanner');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+function clearError(){
+  const el = document.getElementById('errorBanner');
+  el.textContent = '';
+  el.classList.remove('show');
+}
+
+// ================== parsing de arquivo ==================
+function parseWorkbook(wb, fileName){
+  let sheetName = wb.SheetNames.find(n => normalizeHeader(n) === 'vendas');
+  if(!sheetName) sheetName = wb.SheetNames[0];
+  const ws = wb.Sheets[sheetName];
+  const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null, raw:true});
+  if(!rows || !rows.length){
+    throw new Error(`"${fileName}": a aba "${sheetName}" está vazia.`);
+  }
+
+  const header = rows[0].map(h => String(h==null? '' : h));
+  const norm = header.map(normalizeHeader);
+  const idx = {};
+  norm.forEach((h,i)=>{
+    if(h === 'periodo') idx.periodo = i;
+    else if(h.includes('id da loja')) idx.idLoja = i;
+    else if(h.includes('nome da loja')) idx.nomeLoja = i;
+    else if(h === 'cidade') idx.cidade = i;
+    else if(h.includes('total de vendas') && h.includes('pedidos')) idx.pedidos = i;
+    else if(h === 'valor total de vendas') idx.valor = i;
+    else if(h.includes('taxa de entrega')) idx.taxa = i;
+    else if(h.includes('ticket')) idx.ticket = i;
+    else if(h.includes('novos clientes')) idx.novos = i;
+  });
+
+  const required = ['idLoja','nomeLoja','pedidos','valor'];
+  const missing = required.filter(k => idx[k] === undefined);
+  if(missing.length){
+    throw new Error(`"${fileName}": não encontrei as colunas esperadas na aba "${sheetName}" (confira se é o export padrão do relatório de vendas do iFood).`);
+  }
+
+  const dataRows = rows.slice(1).filter(r => r && r[idx.idLoja] != null && r[idx.nomeLoja] != null && String(r[idx.nomeLoja]).trim() !== '');
+  if(!dataRows.length){
+    throw new Error(`"${fileName}": não encontrei nenhuma linha de loja na aba "${sheetName}".`);
+  }
+
+  let periodo = '';
+  const parsed = dataRows.map(r=>{
+    if(idx.periodo !== undefined && r[idx.periodo] && !periodo) periodo = String(r[idx.periodo]);
+    return {
+      sourceFile: fileName,
+      idLoja: r[idx.idLoja],
+      nomeLoja: String(r[idx.nomeLoja]).trim(),
+      cidade: idx.cidade !== undefined ? String(r[idx.cidade] || '') : '',
+      pedidos: Number(r[idx.pedidos]) || 0,
+      valor: Number(r[idx.valor]) || 0,
+      taxa: idx.taxa !== undefined ? (Number(r[idx.taxa]) || 0) : 0,
+      novos: idx.novos !== undefined ? (Number(r[idx.novos]) || 0) : 0,
+    };
+  });
+
+  return {parsed, periodo, sheetName};
+}
+
+function rebuildStores(){
+  const map = new Map();
+  RAW_ROWS.forEach(r=>{
+    const key = r.idLoja;
+    if(!map.has(key)){
+      map.set(key, {id:key, marca: brandOf(r.nomeLoja), grupo: grupoOf(r.nomeLoja),
+        local: localOf(r.nomeLoja), loja:r.nomeLoja, cidade:r.cidade,
+        pedidos:0, valor:0, taxa:0, novos:0});
+    }
+    const a = map.get(key);
+    a.pedidos += r.pedidos;
+    a.valor += r.valor;
+    a.taxa += r.taxa;
+    a.novos += r.novos;
+  });
+  STORES = [...map.values()].map(s=>({...s, ticket: s.pedidos ? s.valor/s.pedidos : 0}));
+
+  const allIds = new Set(STORES.map(s=>s.id));
+  const allMarcas = new Set(STORES.map(s=>s.marca));
+  const allGrupos = new Set(STORES.map(s=>s.grupo));
+  activeMarcas = allMarcas;
+  checkedStores = allIds;
+  activeGrupos = allGrupos;
+}
+
+// mapa: local -> conjunto de grupos presentes ali (considerando TODAS as lojas
+// carregadas, não só o filtro atual) — usado para mostrar "outras marcas nesta loja"
+function buildLocalIndex(){
+  const idx = new Map();
+  STORES.forEach(s=>{
+    if(!idx.has(s.local)) idx.set(s.local, new Set());
+    idx.get(s.local).add(s.grupo);
+  });
+  return idx;
+}
+
+// ranking de localidades para os grupos selecionados: soma pedidos/valor
+// apenas do(s) grupo(s) filtrado(s), mas mostra todas as marcas da localidade
+function rankingPorGrupo(){
+  const filtered = STORES.filter(s => activeGrupos.has(s.grupo));
+  const map = new Map();
+  filtered.forEach(s=>{
+    if(!map.has(s.local)){
+      map.set(s.local, {local:s.local, pedidos:0, valor:0, taxa:0, novos:0});
+    }
+    const a = map.get(s.local);
+    a.pedidos += s.pedidos;
+    a.valor += s.valor;
+    a.taxa += s.taxa;
+    a.novos += s.novos;
+  });
+  const localIndex = buildLocalIndex();
+  return [...map.values()].map(r=>({
+    ...r,
+    ticket: r.pedidos ? r.valor/r.pedidos : 0,
+    marcas: [...(localIndex.get(r.local)||[])].sort()
+  }));
+}
+
+function renderFilesRow(){
+  const box = document.getElementById('filesRow');
+  box.innerHTML = '';
+  LOADED_FILES.forEach(f=>{
+    const tag = document.createElement('div');
+    tag.className = 'file-tag';
+    tag.innerHTML = `${f.name} · ${f.rows} loja(s) <button title="Remover">✕</button>`;
+    tag.querySelector('button').onclick = ()=>{
+      RAW_ROWS = RAW_ROWS.filter(r => r.sourceFile !== f.name);
+      LOADED_FILES = LOADED_FILES.filter(x => x.name !== f.name);
+      rebuildStores();
+      renderAll();
+    };
+    box.appendChild(tag);
+  });
+}
+
+function updateSubtitle(){
+  const periodos = [...new Set(LOADED_FILES.map(f=>f.periodo).filter(Boolean))];
+  const marcas = new Set(STORES.map(s=>s.marca));
+  const sub = document.getElementById('subtitle');
+  if(!STORES.length){
+    sub.textContent = 'Carregue um relatório do iFood para começar';
+  } else {
+    const periodoTxt = periodos.length ? periodos.join(' · ') : '';
+    sub.textContent = `${periodoTxt ? periodoTxt + ' · ' : ''}${STORES.length} loja(s) carregada(s) · ${marcas.size} marca(s)`;
+  }
+}
+
+// ================== upload handling ==================
+document.getElementById('btnUpload').addEventListener('click', ()=> document.getElementById('fileInput').click());
+
+document.getElementById('fileInput').addEventListener('change', async (e)=>{
+  const files = [...e.target.files];
+  e.target.value = ''; // permite re-selecionar o mesmo arquivo depois
+  if(!files.length) return;
+  clearError();
+  const errors = [];
+
+  // cada upload substitui tudo o que estava carregado — o painel sempre reflete
+  // exatamente os arquivos selecionados agora. Para juntar marcas diferentes,
+  // selecione todos os arquivos de uma vez neste mesmo upload.
+  const newRawRows = [];
+  const newLoadedFiles = [];
+
+  for(const file of files){
+    try{
+      const buf = await file.arrayBuffer();
+      const wb = readWorkbookQuietly(buf);
+      const {parsed, periodo, sheetName} = parseWorkbook(wb, file.name);
+      newRawRows.push(...parsed);
+      const idsNoArquivo = new Set(parsed.map(p=>p.idLoja));
+      newLoadedFiles.push({name:file.name, rows:idsNoArquivo.size, periodo, sheetName});
+    } catch(err){
+      errors.push(err.message || `Erro ao processar "${file.name}".`);
+    }
+  }
+
+  // se pelo menos um arquivo foi lido com sucesso, substitui o que estava carregado
+  if(newRawRows.length){
+    RAW_ROWS = newRawRows;
+    LOADED_FILES = newLoadedFiles;
+  }
+
+  if(errors.length) showError(errors.join('\n'));
+  rebuildStores();
+  renderAll();
+});
+
+document.getElementById('btnClearAll').addEventListener('click', ()=>{
+  RAW_ROWS = [];
+  LOADED_FILES = [];
+  clearError();
+  rebuildStores();
+  renderAll();
+});
+
+// ================== chips de marca ==================
+function renderChips(){
+  const box = document.getElementById('marcaChips');
+  box.innerHTML = '';
+  const marcas = [...new Set(STORES.map(s=>s.marca))].sort((a,b)=>{
+    const va = STORES.filter(s=>s.marca===a).reduce((t,s)=>t+s.valor,0);
+    const vb = STORES.filter(s=>s.marca===b).reduce((t,s)=>t+s.valor,0);
+    return vb - va;
+  });
+
+  if(!marcas.length){
+    box.innerHTML = '<span style="color:var(--ink-soft);font-size:13px;">Nenhum dado carregado ainda.</span>';
+    return;
+  }
+
+  const resetChip = document.createElement('div');
+  resetChip.className = 'chip reset' + (activeMarcas.size===marcas.length ? ' active':'');
+  resetChip.innerHTML = '<span class="dot"></span> Todas';
+  resetChip.onclick = () => {
+    if(activeMarcas.size===marcas.length){ activeMarcas.clear(); }
+    else { activeMarcas = new Set(marcas); }
+    syncStoreChecksToMarcas();
+    renderAll();
+  };
+  box.appendChild(resetChip);
+
+  marcas.forEach(m=>{
+    const chip = document.createElement('div');
+    chip.className = 'chip' + (activeMarcas.has(m) ? ' active' : '');
+    chip.innerHTML = '<span class="dot"></span> ' + m;
+    chip.onclick = () => {
+      if(activeMarcas.has(m)) activeMarcas.delete(m); else activeMarcas.add(m);
+      syncStoreChecksToMarcas();
+      renderAll();
+    };
+    box.appendChild(chip);
+  });
+}
+
+function syncStoreChecksToMarcas(){
+  STORES.forEach(s=>{
+    if(activeMarcas.has(s.marca)) checkedStores.add(s.id);
+    else checkedStores.delete(s.id);
+  });
+}
+
+function visibleStores(){
+  const term = searchTerm.trim().toLowerCase();
+  return STORES.filter(s => activeMarcas.has(s.marca) &&
+    (term==='' || s.loja.toLowerCase().includes(term) || s.cidade.toLowerCase().includes(term)));
+}
+
+// ================== KPIs ==================
+function renderKpis(){
+  const sel = STORES.filter(s => checkedStores.has(s.id));
+  const pedidos = sel.reduce((t,s)=>t+s.pedidos,0);
+  const valor = sel.reduce((t,s)=>t+s.valor,0);
+  const novos = sel.reduce((t,s)=>t+s.novos,0);
+  const ticket = pedidos ? valor/pedidos : 0;
+  document.getElementById('kpiPedidos').textContent = fmtInt(pedidos);
+  document.getElementById('kpiValor').textContent = fmtMoney(valor);
+  document.getElementById('kpiTicket').textContent = fmtMoney(ticket);
+  document.getElementById('kpiNovos').textContent = fmtInt(novos);
+}
+
+// ================== gráficos ==================
+let chartMarca, chartLoja;
+
+function renderChartMarca(){
+  const ctx = document.getElementById('chartMarca').getContext('2d');
+  const marcas = [...new Set(STORES.map(s=>s.marca))];
+  const data = marcas.filter(m=>activeMarcas.has(m)).map(m=>{
+    const bs = STORES.filter(s=>s.marca===m);
+    return {marca:m, valor: bs.reduce((t,s)=>t+s.valor,0)};
+  }).sort((a,b)=>b.valor-a.valor);
+
+  const labels = data.map(d=>d.marca);
+  const values = data.map(d=>d.valor);
+  const colors = labels.map((_,i)=> i===0 ? '#EA1D2C' : '#D1D5DB');
+
+  try{
+    if(chartMarca) chartMarca.destroy();
+    if(!labels.length) return;
+    chartMarca = new Chart(ctx, {
+      type:'bar',
+      data:{labels, datasets:[{data:values, backgroundColor:colors, borderRadius:5, maxBarThickness:46}]},
+      options:{
+        indexAxis:'y',
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>fmtMoney(c.parsed.x)}}},
+        scales:{
+          x:{ticks:{callback:v=>'R$ '+(v/1000).toLocaleString('pt-BR')+'k'}, grid:{color:'#F0F1F3'}},
+          y:{grid:{display:false}}
+        }
+      }
+    });
+  } catch(e){ showError('Não consegui desenhar o gráfico de marcas: ' + e.message); }
+}
+
+function renderChartLoja(list){
+  const top = [...list].sort((a,b)=>b.valor-a.valor).slice(0,15);
+  const ctx = document.getElementById('chartLoja').getContext('2d');
+  const labels = top.map(s=>s.loja.length>32 ? s.loja.slice(0,30)+'…' : s.loja);
+  const values = top.map(s=>s.valor);
+  const colors = top.map(s=> checkedStores.has(s.id) ? '#EA1D2C' : '#E5E7EB');
+
+  document.getElementById('chartLojaNote').textContent =
+    list.length > 15 ? `Mostrando as 15 maiores de ${list.length} lojas no filtro atual. A tabela abaixo traz todas.` : '';
+
+  try{
+    if(chartLoja) chartLoja.destroy();
+    if(!labels.length) return;
+    chartLoja = new Chart(ctx, {
+      type:'bar',
+      data:{labels, datasets:[{data:values, backgroundColor:colors, borderRadius:5, maxBarThickness:22}]},
+      options:{
+        indexAxis:'y',
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>fmtMoney(c.parsed.x)}}},
+        scales:{
+          x:{ticks:{callback:v=>'R$ '+(v/1000).toLocaleString('pt-BR')+'k'}, grid:{color:'#F0F1F3'}},
+          y:{grid:{display:false}, ticks:{autoSkip:false, font:{size:11}}}
+        }
+      }
+    });
+  } catch(e){ showError('Não consegui desenhar o gráfico de lojas: ' + e.message); }
+}
+
+// ================== painel "Filtro por marca" ==================
+function renderGrupoChips(){
+  const box = document.getElementById('grupoChips');
+  box.innerHTML = '';
+  const grupos = [...new Set(STORES.map(s=>s.grupo))].sort((a,b)=>{
+    const va = STORES.filter(s=>s.grupo===a).reduce((t,s)=>t+s.valor,0);
+    const vb = STORES.filter(s=>s.grupo===b).reduce((t,s)=>t+s.valor,0);
+    return vb - va;
+  });
+
+  if(!grupos.length){
+    box.innerHTML = '<span style="color:var(--ink-soft);font-size:13px;">Nenhum dado carregado ainda.</span>';
+    return;
+  }
+
+  const resetChip = document.createElement('div');
+  resetChip.className = 'chip reset' + (activeGrupos.size===grupos.length ? ' active':'');
+  resetChip.innerHTML = '<span class="dot"></span> Todas';
+  resetChip.onclick = () => {
+    if(activeGrupos.size===grupos.length){ activeGrupos.clear(); }
+    else { activeGrupos = new Set(grupos); }
+    renderGrupoSection();
+  };
+  box.appendChild(resetChip);
+
+  grupos.forEach(g=>{
+    const chip = document.createElement('div');
+    chip.className = 'chip' + (activeGrupos.has(g) ? ' active' : '');
+    chip.innerHTML = '<span class="dot"></span> ' + g;
+    chip.onclick = () => {
+      if(activeGrupos.has(g)) activeGrupos.delete(g); else activeGrupos.add(g);
+      renderGrupoSection();
+    };
+    box.appendChild(chip);
+  });
+}
+
+function renderGrupoSummary(rows){
+  const el = document.getElementById('grupoSummary');
+  const pedidos = rows.reduce((t,r)=>t+r.pedidos,0);
+  const valor = rows.reduce((t,r)=>t+r.valor,0);
+  const grupos = [...activeGrupos];
+  const nomeGrupos = grupos.length ? grupos.join(', ') : 'nenhuma marca selecionada';
+  el.innerHTML = rows.length
+    ? `<b>${nomeGrupos}</b> · ${rows.length} loja(s) · ${fmtInt(pedidos)} pedidos · <b>${fmtMoney(valor)}</b>`
+    : 'Selecione ao menos uma marca acima para ver o ranking de lojas.';
+}
+
+let chartGrupoLoja;
+function renderGrupoChart(rows){
+  const top = [...rows].sort((a,b)=>b.valor-a.valor).slice(0,15);
+  const ctx = document.getElementById('chartGrupoLoja').getContext('2d');
+  const labels = top.map(r=>r.local.length>32 ? r.local.slice(0,30)+'…' : r.local);
+  const values = top.map(r=>r.valor);
+
+  document.getElementById('chartGrupoLojaNote').textContent =
+    rows.length > 15 ? `Mostrando as 15 maiores de ${rows.length} lojas no filtro atual. A tabela abaixo traz todas.` : '';
+
+  try{
+    if(chartGrupoLoja) chartGrupoLoja.destroy();
+    if(!labels.length) return;
+    chartGrupoLoja = new Chart(ctx, {
+      type:'bar',
+      data:{labels, datasets:[{data:values, backgroundColor:'#EA1D2C', borderRadius:5, maxBarThickness:22}]},
+      options:{
+        indexAxis:'y',
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>fmtMoney(c.parsed.x)}}},
+        scales:{
+          x:{ticks:{callback:v=>'R$ '+(v/1000).toLocaleString('pt-BR')+'k'}, grid:{color:'#F0F1F3'}},
+          y:{grid:{display:false}, ticks:{autoSkip:false, font:{size:11}}}
+        }
+      }
+    });
+  } catch(e){ showError('Não consegui desenhar o gráfico do ranking por marca: ' + e.message); }
+}
+
+function renderGrupoTable(rows){
+  const sorted = [...rows].sort((a,b)=>{
+    let av=a[sortKeyGrupo], bv=b[sortKeyGrupo];
+    if(typeof av === 'string'){ av=av.toLowerCase(); bv=bv.toLowerCase(); return av<bv? -1*sortDirGrupo : av>bv? 1*sortDirGrupo : 0; }
+    return (av-bv)*sortDirGrupo;
+  });
+
+  const tbody = document.getElementById('tblGrupoBody');
+  tbody.innerHTML = '';
+  document.getElementById('emptyGrupoMsg').style.display = sorted.length ? 'none' : 'block';
+
+  sorted.forEach(r=>{
+    const tr = document.createElement('tr');
+    const badges = r.marcas.map(m=>{
+      const isFiltro = activeGrupos.has(m);
+      return `<span class="marca-badge${isFiltro ? ' is-filtro':''}">${m}</span>`;
+    }).join(' ');
+    tr.innerHTML = `
+      <td>${r.local}</td>
+      <td><div class="marcas-badges">${badges}</div></td>
+      <td class="num">${fmtInt(r.pedidos)}</td>
+      <td class="num">${fmtMoney(r.valor)}</td>
+      <td class="num">${fmtMoney(r.ticket)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.querySelectorAll('#panelGrupo thead th[data-key]').forEach(th=>{
+    th.classList.toggle('sorted', th.getAttribute('data-key')===sortKeyGrupo);
+  });
+}
+
+function renderGrupoSection(){
+  renderGrupoChips();
+  const rows = rankingPorGrupo();
+  renderGrupoSummary(rows);
+  renderGrupoChart(rows);
+  renderGrupoTable(rows);
+}
+
+// ---------- exportação ----------
+function currentGrupoLabel(){
+  const grupos = [...activeGrupos];
+  if(!grupos.length) return 'nenhuma-marca';
+  if(grupos.length <= 2) return grupos.join('-').replace(/\s+/g,'-');
+  return `${grupos.length}-marcas`;
+}
+
+async function exportGrupoPdf(){
+  const btn = document.getElementById('btnExportPdf');
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = 'Gerando PDF...';
+  try{
+    const node = document.getElementById('panelGrupo');
+    const canvas = await html2canvas(node, {backgroundColor:'#ffffff', scale:2});
+    const imgData = canvas.toDataURL('image/png');
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({orientation: canvas.width > canvas.height ? 'landscape':'portrait', unit:'px', format:[canvas.width, canvas.height]});
+    pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+    pdf.save(`painel-vendas-${currentGrupoLabel()}.pdf`);
+  } catch(e){
+    showError('Não consegui gerar o PDF: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
+function exportGrupoExcel(){
+  try{
+    const rows = rankingPorGrupo();
+    const grupos = [...activeGrupos].join(', ') || '(nenhuma)';
+    const aoa = [
+      [`Marca(s): ${grupos}`],
+      [],
+      ['Loja (localidade)', 'Marcas nesta loja', 'Pedidos', 'Valor total', 'Ticket médio'],
+      ...[...rows].sort((a,b)=>b.valor-a.valor).map(r=>[
+        r.local, r.marcas.join(', '), r.pedidos, Number(r.valor.toFixed(2)), Number(r.ticket.toFixed(2))
+      ])
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [{wch:28},{wch:32},{wch:10},{wch:14},{wch:12}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Ranking por marca');
+    XLSX.writeFile(wb, `painel-vendas-${currentGrupoLabel()}.xlsx`);
+  } catch(e){
+    showError('Não consegui gerar o Excel: ' + e.message);
+  }
+}
+
+document.getElementById('btnExportPdf').addEventListener('click', exportGrupoPdf);
+document.getElementById('btnExportXlsx').addEventListener('click', exportGrupoExcel);
+
+document.querySelectorAll('#panelGrupo thead th[data-key]').forEach(th=>{
+  th.addEventListener('click', ()=>{
+    const key = th.getAttribute('data-key');
+    if(sortKeyGrupo===key) sortDirGrupo *= -1; else { sortKeyGrupo=key; sortDirGrupo = key==='local' ? 1 : -1; }
+    renderGrupoTable(rankingPorGrupo());
+  });
+});
+
+// ================== tabela ==================
+function renderTable(){
+  const list = visibleStores();
+  const sorted = [...list].sort((a,b)=>{
+    let av=a[sortKey], bv=b[sortKey];
+    if(typeof av === 'string'){ av=av.toLowerCase(); bv=bv.toLowerCase(); return av<bv? -1*sortDir : av>bv? 1*sortDir : 0; }
+    return (av-bv)*sortDir;
+  });
+
+  const tbody = document.getElementById('tblBody');
+  tbody.innerHTML = '';
+  document.getElementById('emptyMsg').style.display = sorted.length ? 'none' : 'block';
+  document.getElementById('emptyMsg').textContent = STORES.length
+    ? 'Nenhuma loja encontrada com esse filtro.'
+    : 'Nenhuma loja carregada ainda. Use "Carregar relatório(s)" para começar.';
+
+  sorted.forEach(s=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="check"><input type="checkbox" ${checkedStores.has(s.id)?'checked':''} data-id="${s.id}"></td>
+      <td>${s.loja}</td>
+      <td><span class="marca-badge">${s.marca}</span></td>
+      <td>${s.cidade}</td>
+      <td class="num">${fmtInt(s.pedidos)}</td>
+      <td class="num">${fmtMoney(s.valor)}</td>
+      <td class="num">${fmtMoney(s.ticket)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change', e=>{
+      const id = e.target.getAttribute('data-id');
+      const store = STORES.find(s => String(s.id) === String(id));
+      if(!store) return;
+      if(e.target.checked) checkedStores.add(store.id); else checkedStores.delete(store.id);
+      renderKpis();
+      renderChartLoja(visibleStores());
+    });
+  });
+
+  document.querySelectorAll('thead th[data-key]').forEach(th=>{
+    th.classList.toggle('sorted', th.getAttribute('data-key')===sortKey);
+  });
+
+  return sorted;
+}
+
+// ================== wire up ==================
+document.querySelectorAll('thead th[data-key]').forEach(th=>{
+  th.addEventListener('click', ()=>{
+    const key = th.getAttribute('data-key');
+    if(sortKey===key) sortDir *= -1; else { sortKey=key; sortDir = key==='loja'||key==='marca'||key==='cidade' ? 1 : -1; }
+    renderAll();
+  });
+});
+
+document.getElementById('searchLoja').addEventListener('input', e=>{
+  searchTerm = e.target.value;
+  renderAll();
+});
+
+document.getElementById('btnCheckAll').addEventListener('click', ()=>{
+  visibleStores().forEach(s=>checkedStores.add(s.id));
+  renderAll();
+});
+document.getElementById('btnCheckNone').addEventListener('click', ()=>{
+  visibleStores().forEach(s=>checkedStores.delete(s.id));
+  renderAll();
+});
+
+function renderAll(){
+  renderFilesRow();
+  updateSubtitle();
+  renderChips();
+  renderKpis();
+  renderChartMarca();
+  const list = renderTable();
+  renderChartLoja(list);
+  renderGrupoSection();
+}
+
+// aviso amigável se alguma lib externa não carregar
+window.addEventListener('error', (e)=>{
+  if(typeof Chart === 'undefined' || typeof XLSX === 'undefined'){
+    showError('Uma biblioteca externa não carregou (Chart.js ou SheetJS). Verifique a conexão e recarregue a página.');
+  }
+});
+
+renderAll();
+</script>
+</body>
+</html>

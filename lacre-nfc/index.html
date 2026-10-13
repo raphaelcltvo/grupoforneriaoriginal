@@ -23,15 +23,14 @@ header{display:flex;flex-direction:column;align-items:center;text-align:center;g
 h1{font-family:var(--display);font-weight:700;font-size:40px;line-height:1;margin:0;text-transform:uppercase;letter-spacing:.01em;color:var(--red);text-wrap:balance}
 .lead{margin:4px 0 0;color:var(--muted);max-width:34ch}
 form{display:flex;flex-direction:column;gap:16px}
-label{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:15px}
+label{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:16px}
 input[type=text],input[type=tel],input[type=email]{font:inherit;font-weight:400;font-size:17px;padding:13px 14px;border:1.5px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);width:100%}
 input:focus-visible{outline:2px solid var(--red);outline-offset:1px;border-color:transparent}
 input:-webkit-autofill{animation-name:afill;animation-duration:1ms}
 @keyframes afill{from{}to{}}
 .err{color:var(--err);font-size:13px;font-weight:500}
 .prize{border:0;border-top:1px solid var(--line);margin:0;padding:18px 0 0;display:flex;flex-direction:column;gap:8px;min-width:0}
-.prize legend{font-family:var(--display);font-weight:700;font-size:23px;line-height:1.1;text-transform:uppercase;color:var(--ink);padding:0;margin-bottom:10px;float:left;width:100%;text-wrap:balance}
-.prize legend.long{font-family:var(--body);text-transform:none;font-size:16px;font-weight:600;line-height:1.4}
+.prize legend{font-family:var(--body);font-weight:600;font-size:16px;line-height:1.4;color:var(--ink);padding:0;margin-bottom:10px;float:left;width:100%}
 .opt-card{flex-direction:row;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;cursor:pointer;font-weight:400;background:var(--bg)}
 .opt-card:has(input:checked){border-color:var(--red);background:var(--red-tint)}
 .opt-card input,.consent input{width:20px;height:20px;flex:none;accent-color:var(--red);margin:0}
@@ -66,8 +65,8 @@ pre{white-space:pre-wrap}
       <input id="name" name="name" type="text" autocomplete="name" autocapitalize="words" enterkeyhint="next" placeholder="Maria da Silva" required>
       <span class="err" id="e-name" role="alert"></span>
     </label>
-    <label for="tel">Celular com DDD
-      <input id="tel" name="tel" type="tel" autocomplete="tel" inputmode="tel" enterkeyhint="next" placeholder="(21) 99999-9999" required>
+    <label for="tel">Celular
+      <input id="tel" name="tel" type="tel" autocomplete="tel" inputmode="tel" enterkeyhint="next" placeholder="99999-9999" required>
       <span class="err" id="e-tel" role="alert"></span>
     </label>
     <label for="email">E-mail
@@ -83,7 +82,7 @@ pre{white-space:pre-wrap}
     </fieldset>
 
     <fieldset class="prize" id="canalSet" aria-describedby="e-canal">
-      <legend class="long">Você sabia que no canal próprio da Forneria Original (app, site ou telefone) você tem 20% de desconto no primeiro pedido e descontos regulares, deixando sua pizza preferida mais barata?</legend>
+      <legend>Você sabia que no canal próprio da Forneria Original (app, site ou telefone) você tem 20% de desconto no primeiro pedido e descontos regulares, deixando sua pizza preferida mais barata?</legend>
       <label class="opt-card" for="c1"><input type="radio" id="c1" name="canal" value="Sim"><span><b>Sim</b></span></label>
       <label class="opt-card" for="c2"><input type="radio" id="c2" name="canal" value="Não"><span><b>Não</b></span></label>
       <label class="opt-card" for="c3"><input type="radio" id="c3" name="canal" value="Quero agora!"><span><b>Quero agora!</b><small>mandamos o link no WhatsApp</small></span></label>
@@ -152,7 +151,7 @@ function validate(){
   const n = F.name.value.trim();
   if (n.split(/\s+/).length < 2) { $("e-name").textContent = "Digite nome e sobrenome."; ok = false; }
   let d = digits(F.tel.value); if (d.startsWith("55") && d.length > 11) d = d.slice(2);
-  if (d.length < 10 || d.length > 11) { $("e-tel").textContent = "Use DDD + número, ex.: 21 99999-9999."; ok = false; }
+  if (d.length < 8 || d.length > 11) { $("e-tel").textContent = "Confira o número, ex.: 99999-9999."; ok = false; }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(F.email.value.trim())) { $("e-email").textContent = "Confira o e-mail, ex.: nome@email.com."; ok = false; }
   GROUPS.forEach(g => { if (pick(g[0]) === "—") { $(g[1]).textContent = g[0] === "premio" ? "Escolha um prêmio." : "Escolha uma opção."; ok = false; } });
   return ok;

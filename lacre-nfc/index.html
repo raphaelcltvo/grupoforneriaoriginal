@@ -166,7 +166,6 @@ function message(){
   m += "Sabia do desconto no canal próprio: " + pick("canal") + "\n";
   m += "Prêmio escolhido: " + pick("premio") + "\n";
   m += "Aceita promoções e novidades: " + ($("optin").checked ? "sim" : "não") + "\n";
-  m += "\n[teste " + testId + " · " + secs + " s · " + taps + " toques · autopreenchimento: " + (autofilled ? "sim" : "não") + " · " + (inFrame ? "prévia" : "link final") + " · " + (/iPhone|iPad/.test(navigator.userAgent) ? "iOS" : /Android/.test(navigator.userAgent) ? "Android" : "outro") + (/WhatsApp|FBAN|FBAV|Instagram/.test(navigator.userAgent) ? " in-app" : "") + "]";
   return m;
 }
 function render(){

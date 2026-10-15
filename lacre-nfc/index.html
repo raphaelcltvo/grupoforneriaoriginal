@@ -30,7 +30,7 @@ input:-webkit-autofill{animation-name:afill;animation-duration:1ms}
 @keyframes afill{from{}to{}}
 .err{color:var(--err);font-size:13px;font-weight:500}
 .prize{border:0;border-top:1px solid var(--line);margin:0;padding:18px 0 0;display:flex;flex-direction:column;gap:8px;min-width:0}
-.prize legend{font-family:var(--body);font-weight:600;font-size:16px;line-height:1.4;color:var(--ink);padding:0;margin-bottom:10px;float:left;width:100%}
+.prize legend{font-family:var(--display);font-weight:700;font-size:23px;line-height:1.1;text-transform:uppercase;color:var(--ink);padding:0;margin-bottom:10px;float:left;width:100%;text-wrap:balance}
 .opt-card{flex-direction:row;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;cursor:pointer;font-weight:400;background:var(--bg)}
 .opt-card:has(input:checked){border-color:var(--red);background:var(--red-tint)}
 .opt-card input,.consent input{width:20px;height:20px;flex:none;accent-color:var(--red);margin:0}
@@ -82,7 +82,7 @@ pre{white-space:pre-wrap}
     </fieldset>
 
     <fieldset class="prize" id="canalSet" aria-describedby="e-canal">
-      <legend>Você sabia que no canal próprio da Forneria Original (app, site ou telefone) você tem 20% de desconto no primeiro pedido e descontos regulares, deixando sua pizza preferida mais barata?</legend>
+      <legend>Sabia que pedindo direto no app, site ou telefone da Forneria você ganha 20% off no 1º pedido e descontos frequentes?</legend>
       <label class="opt-card" for="c1"><input type="radio" id="c1" name="canal" value="Sim"><span><b>Sim</b></span></label>
       <label class="opt-card" for="c2"><input type="radio" id="c2" name="canal" value="Não"><span><b>Não</b></span></label>
       <label class="opt-card" for="c3"><input type="radio" id="c3" name="canal" value="Quero agora!"><span><b>Quero agora!</b><small>mandamos o link no WhatsApp</small></span></label>
